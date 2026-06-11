@@ -1,0 +1,143 @@
+# curf.yml — example configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# This is the main config file for curf.
+# All settings have sensible defaults — you only need to configure what you need.
+# Run curf with:  curf --config curf.yml
+# ─────────────────────────────────────────────────────────────────────────────
+
+server:
+  # Ports curf listens on
+  http_port: 80
+  https_port: 443
+
+  # How long (seconds) to wait for a backend to respond before giving up
+  timeout_secs: 30
+
+  # Maximum number of simultaneous open connections across all clients
+  max_connections: 10000
+
+  # Maximum simultaneous connections from a single IP address
+  # Helps prevent one client from consuming all resources
+  max_connections_per_ip: 100
+
+  # Rate limiting: max requests per second per IP address
+  # Set to 0 to disable rate limiting
+  rate_limit_rps: 100
+
+  # Burst allowance: allow this many extra requests before rate limiting kicks in
+  rate_limit_burst: 200
+
+  # Security features — all default to true, set to false to disable
+  security:
+    # Block SQL injection attempts in URL paths and query strings
+    waf_sqli: true
+
+    # Block cross-site scripting (XSS) attempts
+    waf_xss: true
+
+    # Block directory traversal attempts (../ in paths)
+    waf_path_traversal: true
+
+    # Block IPs that repeatedly fail TLS handshakes (scanners/attackers)
+    block_tls_abusers: true
+    max_tls_failures: 10
+
+    # Block requests that send no User-Agent header (optional, off by default)
+    block_empty_user_agent: false
+
+
+# ─── Domain configuration ────────────────────────────────────────────────────
+# Each key is a domain name. You can have as many domains as you like.
+# curf uses the Host header to decide which domain config to use.
+
+domains:
+
+  # ── Simple reverse proxy ───────────────────────────────────────────────────
+  # Forward all traffic for example.com to a local app on port 3000
+  example.com:
+    backends:
+      - http://127.0.0.1:3000
+
+    # TLS certificate (comment out if you only want HTTP)
+    tls:
+      cert: /etc/letsencrypt/live/example.com/fullchain.pem
+      key:  /etc/letsencrypt/live/example.com/privkey.pem
+
+    # Automatically redirect http://example.com → https://example.com
+    redirect_to_https: true
+
+    # Add custom headers to every response
+    headers:
+      - name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - name: X-Frame-Options
+        value: SAMEORIGIN
+
+
+  # ── Load-balanced reverse proxy ────────────────────────────────────────────
+  # Distribute traffic across three backend instances
+  app.example.com:
+    backends:
+      - http://127.0.0.1:3001
+      - http://127.0.0.1:3002
+      - http://127.0.0.1:3003
+
+    # Strategies: round_robin | least_connections | ip_hash
+    # round_robin      — cycles through backends evenly (default)
+    # least_connections — picks the backend with fewest active requests
+    # ip_hash           — always routes the same client IP to the same backend
+    load_balance: round_robin
+
+    # Health check: backends that fail are automatically taken out of rotation
+    health_check:
+      enabled: true
+      interval_secs: 15    # check every 15 seconds
+      timeout_secs: 5      # consider failed if no response within 5s
+      path: /health        # path to request (should return 2xx)
+
+    tls:
+      cert: /etc/letsencrypt/live/app.example.com/fullchain.pem
+      key:  /etc/letsencrypt/live/app.example.com/privkey.pem
+
+
+  # ── Static file server ─────────────────────────────────────────────────────
+  # Serve a website from /var/www/mysite
+  static.example.com:
+    static_files:
+      root: /var/www/mysite     # MUST be an absolute path
+      index:
+        - index.html
+        - index.htm
+      autoindex: false          # set to true to show directory listings
+
+    tls:
+      cert: /etc/letsencrypt/live/static.example.com/fullchain.pem
+      key:  /etc/letsencrypt/live/static.example.com/privkey.pem
+
+    headers:
+      - name: Cache-Control
+        value: "public, max-age=86400"
+
+
+  # ── Static files + backend fallback ────────────────────────────────────────
+  # Serve static files where they exist; fall through to the backend otherwise.
+  # Great for single-page apps (SPA) with an API backend.
+  spa.example.com:
+    static_files:
+      root: /var/www/spa/dist
+      index:
+        - index.html
+    backends:
+      - http://127.0.0.1:4000
+
+    tls:
+      cert: /etc/letsencrypt/live/spa.example.com/fullchain.pem
+      key:  /etc/letsencrypt/live/spa.example.com/privkey.pem
+
+
+  # ── HTTP only (no TLS) ─────────────────────────────────────────────────────
+  # Useful for internal services or during initial setup
+  internal.example.com:
+    backends:
+      - http://10.0.0.5:8080
+
