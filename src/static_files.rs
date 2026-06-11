@@ -1,14 +1,14 @@
-/// Static file server for curf.
-///
-/// Serves files from a local directory.
-/// Features:
-///   - Path sanitisation — prevents directory traversal (../)
-///   - Index files       — looks for index.html (configurable) in directories
-///   - ETag / If-None-Match caching
-///   - Last-Modified / If-Modified-Since caching
-///   - Accurate MIME types
-///   - Optional directory listing (autoindex)
-///   - HEAD request support
+//! Static file server for curf.
+//!
+//! Serves files from a local directory.
+//! Features:
+//!   - Path sanitisation — prevents directory traversal (../)
+//!   - Index files       — looks for index.html (configurable) in directories
+//!   - ETag / If-None-Match caching
+//!   - Last-Modified / If-Modified-Since caching
+//!   - Accurate MIME types
+//!   - Optional directory listing (autoindex)
+//!   - HEAD request support
 
 use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
 use hyper::body::Bytes;
@@ -16,7 +16,7 @@ use hyper::{header, HeaderMap, Method, Response, StatusCode};
 use std::path::{Component, Path, PathBuf};
 use std::time::SystemTime;
 use tokio::fs;
-use tracing::{debug, warn};
+use tracing::warn;
 
 pub struct StaticFileServer {
     root: PathBuf,
@@ -194,16 +194,16 @@ impl StaticFileServer {
         Some(result)
     }
 
-    async fn directory_listing(&self, dir: &Path, url_path: &str) -> Response<BoxBody<Bytes, hyper::Error>> {
+    async fn directory_listing(
+        &self,
+        dir: &Path,
+        url_path: &str,
+    ) -> Response<BoxBody<Bytes, hyper::Error>> {
         let mut entries = Vec::new();
         if let Ok(mut read_dir) = fs::read_dir(dir).await {
             while let Ok(Some(entry)) = read_dir.next_entry().await {
                 let name = entry.file_name().to_string_lossy().into_owned();
-                let is_dir = entry
-                    .file_type()
-                    .await
-                    .map(|t| t.is_dir())
-                    .unwrap_or(false);
+                let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
                 entries.push((name, is_dir));
             }
         }
@@ -217,7 +217,7 @@ impl StaticFileServer {
             base, base
         );
 
-        if base != "" {
+        if !base.is_empty() {
             html.push_str("<a href=\"../\">../</a>");
         }
         for (name, is_dir) in &entries {

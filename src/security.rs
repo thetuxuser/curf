@@ -1,16 +1,15 @@
-/// Security module for curf.
-///
-/// Provides:
-///   - Per-IP connection tracking (prevents connection exhaustion from one IP)
-///   - Basic WAF: blocks SQLi, XSS and path-traversal patterns in URLs
-///   - TLS abuse detection: blocks IPs with too many failed handshakes
-///   - Optional: block requests with no User-Agent
+//! Security module for curf.
+//!
+//! Provides:
+//!   - Per-IP connection tracking (prevents connection exhaustion from one IP)
+//!   - Basic WAF: blocks SQLi, XSS and path-traversal patterns in URLs
+//!   - TLS abuse detection: blocks IPs with too many failed handshakes
+//!   - Optional: block requests with no User-Agent
 
 use crate::config::SecurityFlags;
 use dashmap::DashMap;
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Arc;
 use tracing::warn;
 
 // ─── SecurityChecker ─────────────────────────────────────────────────────────
@@ -65,7 +64,8 @@ impl SecurityChecker {
         if !self.flags.block_tls_abusers {
             return;
         }
-        let entry = self.tls_failures
+        let entry = self
+            .tls_failures
             .entry(ip)
             .or_insert_with(|| AtomicU32::new(0));
         let count = entry.fetch_add(1, Ordering::Relaxed) + 1;
@@ -85,7 +85,7 @@ impl SecurityChecker {
         query: Option<&str>,
         user_agent: Option<&str>,
     ) -> Result<(), &'static str> {
-        let ip_blocked_sentinel = "blocked";
+        let _ip_blocked_sentinel = "blocked";
 
         // Block empty User-Agent if the flag is on
         if self.flags.block_empty_user_agent {

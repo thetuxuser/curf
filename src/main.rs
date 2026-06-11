@@ -1,5 +1,5 @@
-/// curf — a simple, fast reverse proxy and web server
-/// https://github.com/thetuxuser/curf
+//! curf — a simple, fast reverse proxy and web server
+//! https://github.com/thetuxuser/curf
 
 mod config;
 mod error;
@@ -220,7 +220,10 @@ async fn serve_http(
 
         // Per-IP connection cap
         if security.check_and_acquire_connection(peer.ip()).is_err() {
-            warn!("Per-IP connection limit reached for {} — dropping", peer.ip());
+            warn!(
+                "Per-IP connection limit reached for {} — dropping",
+                peer.ip()
+            );
             continue;
         }
 
@@ -242,7 +245,8 @@ async fn serve_http(
                 async move { proxy.handle(peer, req, false).await }
             });
 
-            let conn = auto::Builder::new(TokioExecutor::new()).serve_connection(io, svc);
+            let builder = auto::Builder::new(TokioExecutor::new());
+            let conn = builder.serve_connection(io, svc);
             if let Err(e) = timeout(Duration::from_secs(60), conn).await {
                 warn!("HTTP connection timeout from {}: {:?}", peer, e);
             }
@@ -326,7 +330,8 @@ async fn serve_https(
                 async move { proxy.handle(peer, req, true).await }
             });
 
-            let conn = auto::Builder::new(TokioExecutor::new()).serve_connection(io, svc);
+            let builder = auto::Builder::new(TokioExecutor::new());
+            let conn = builder.serve_connection(io, svc);
             if let Err(e) = timeout(Duration::from_secs(60), conn).await {
                 warn!("HTTPS connection timeout from {}: {:?}", peer, e);
             }

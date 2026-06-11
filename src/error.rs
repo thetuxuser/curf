@@ -1,4 +1,4 @@
-/// Simple error response helpers.
+//! Simple error response helpers.
 
 use http_body_util::{combinators::BoxBody, BodyExt, Full};
 use hyper::body::Bytes;
@@ -19,7 +19,11 @@ pub fn error_response(status: StatusCode, message: &str) -> Response<BoxBody<Byt
 }
 
 /// Build a minimal HTML error page.
-pub fn html_error(status: StatusCode, title: &str, body: &str) -> Response<BoxBody<Bytes, hyper::Error>> {
+pub fn html_error(
+    status: StatusCode,
+    title: &str,
+    body: &str,
+) -> Response<BoxBody<Bytes, hyper::Error>> {
     let html = format!(
         r#"<!DOCTYPE html>
 <html>
@@ -41,10 +45,6 @@ pub fn html_error(status: StatusCode, title: &str, body: &str) -> Response<BoxBo
         .status(status)
         .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
         .header(header::CACHE_CONTROL, "no-store")
-        .body(
-            Full::new(Bytes::from(html))
-                .map_err(|e| match e {})
-                .boxed(),
-        )
+        .body(Full::new(Bytes::from(html)).map_err(|e| match e {}).boxed())
         .unwrap()
 }
