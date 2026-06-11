@@ -1,0 +1,53 @@
+[package]
+name = "curf"
+version = "0.1.0"
+edition = "2021"
+authors = ["thetuxuser"]
+license = "MIT"
+description = "A simple, fast reverse proxy and web server"
+repository = "https://github.com/thetuxuser/curf"
+keywords = ["proxy", "reverse-proxy", "http", "web-server"]
+categories = ["network-programming", "web-programming"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP server/client
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+
+# TLS support
+rustls = "0.23"
+tokio-rustls = "0.26"
+rustls-pemfile = "2"
+
+# Config parsing
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+anyhow = "1"
+bytes = "1"
+dashmap = "6"
+rand = "0.8"
+tokio-util = { version = "0.7", features = ["io"] }
+mime_guess = "2"
+percent-encoding = "2"
+chrono = "0.4"
+httpdate = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

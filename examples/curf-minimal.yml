@@ -1,0 +1,8 @@
+# curf-minimal.yml
+# The simplest possible curf config — one domain, one backend, no TLS.
+# Good for testing locally.
+
+domains:
+  localhost:
+    backends:
+      - http://127.0.0.1:3000
