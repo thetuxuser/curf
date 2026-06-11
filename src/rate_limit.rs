@@ -1,9 +1,9 @@
-/// Token-bucket rate limiter for curf.
-///
-/// Each IP gets a separate bucket. Tokens refill at `rps` tokens/second.
-/// The bucket can hold up to `burst` tokens, allowing short bursts.
-///
-/// A value of 0 for `rps` disables rate limiting entirely.
+//! Token-bucket rate limiter for curf.
+//!
+//! Each IP gets a separate bucket. Tokens refill at `rps` tokens/second.
+//! The bucket can hold up to `burst` tokens, allowing short bursts.
+//!
+//! A value of 0 for `rps` disables rate limiting entirely.
 
 use dashmap::DashMap;
 use std::net::IpAddr;

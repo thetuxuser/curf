@@ -1,8 +1,8 @@
-/// TLS certificate manager for curf.
-///
-/// Supports multiple domains via SNI (Server Name Indication).
-/// Each domain gets its own certificate; the right one is automatically
-/// picked based on the TLS ClientHello.
+//! TLS certificate manager for curf.
+//!
+//! Supports multiple domains via SNI (Server Name Indication).
+//! Each domain gets its own certificate; the right one is automatically
+//! picked based on the TLS ClientHello.
 
 use anyhow::{Context, Result};
 use rustls::crypto::ring;
@@ -38,7 +38,11 @@ impl SslManager {
     pub fn add_domain(&mut self, domain: String, cert_path: &str, key_path: &str) -> Result<()> {
         let (certs, key) = load_cert_and_key(cert_path, key_path)
             .with_context(|| format!("Failed to load TLS materials for '{}'", domain))?;
-        self.domains.push(DomainCert { name: domain, certs, key });
+        self.domains.push(DomainCert {
+            name: domain,
+            certs,
+            key,
+        });
         Ok(())
     }
 
@@ -55,12 +59,11 @@ impl SslManager {
                 .with_context(|| format!("Failed to register cert for '{}'", d.name))?;
         }
 
-        let mut cfg =
-            ServerConfig::builder_with_provider(Arc::new(ring::default_provider()))
-                .with_safe_default_protocol_versions()
-                .expect("Failed to configure TLS protocol versions")
-                .with_no_client_auth()
-                .with_cert_resolver(Arc::new(resolver));
+        let mut cfg = ServerConfig::builder_with_provider(Arc::new(ring::default_provider()))
+            .with_safe_default_protocol_versions()
+            .expect("Failed to configure TLS protocol versions")
+            .with_no_client_auth()
+            .with_cert_resolver(Arc::new(resolver));
 
         // Advertise HTTP/2 and HTTP/1.1 via ALPN
         cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
@@ -75,7 +78,9 @@ impl SslManager {
 
     /// Returns the TLS acceptor. Panics if `build()` was not called first.
     pub fn acceptor(&self) -> &TlsAcceptor {
-        self.acceptor.as_ref().expect("SslManager: build() not called")
+        self.acceptor
+            .as_ref()
+            .expect("SslManager: build() not called")
     }
 }
 
@@ -86,8 +91,8 @@ fn load_cert_and_key(
     key_path: &str,
 ) -> Result<(Vec<CertificateDer<'static>>, PrivateKeyDer<'static>)> {
     // Load certificate chain
-    let cert_file = File::open(cert_path)
-        .with_context(|| format!("Cannot open cert file '{}'", cert_path))?;
+    let cert_file =
+        File::open(cert_path).with_context(|| format!("Cannot open cert file '{}'", cert_path))?;
     let mut cert_reader = BufReader::new(cert_file);
     let certs: Vec<CertificateDer> = rustls_pemfile::certs(&mut cert_reader)
         .collect::<Result<Vec<_>, _>>()
@@ -97,8 +102,8 @@ fn load_cert_and_key(
     }
 
     // Load private key
-    let key_file = File::open(key_path)
-        .with_context(|| format!("Cannot open key file '{}'", key_path))?;
+    let key_file =
+        File::open(key_path).with_context(|| format!("Cannot open key file '{}'", key_path))?;
     let mut key_reader = BufReader::new(key_file);
     let key = load_key(&mut key_reader)
         .with_context(|| format!("Failed to load private key from '{}'", key_path))?;

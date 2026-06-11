@@ -1,12 +1,12 @@
-/// Core request handler for curf.
-///
-/// For each incoming request it:
-///   1. Runs security checks (WAF, rate limit, blocked IPs)
-///   2. Checks if the domain should redirect HTTP → HTTPS
-///   3. Tries to serve from static files (if configured)
-///   4. Forwards to a backend via the load balancer
-///   5. Handles WebSocket upgrades transparently
-///   6. Injects any configured extra response headers
+//! Core request handler for curf.
+//!
+//! For each incoming request it:
+//!   1. Runs security checks (WAF, rate limit, blocked IPs)
+//!   2. Checks if the domain should redirect HTTP → HTTPS
+//!   3. Tries to serve from static files (if configured)
+//!   4. Forwards to a backend via the load balancer
+//!   5. Handles WebSocket upgrades transparently
+//!   6. Injects any configured extra response headers
 
 use crate::config::DomainConfig;
 use crate::error::{error_response, html_error};
@@ -16,12 +16,12 @@ use crate::security::SecurityChecker;
 use crate::static_files::StaticFileServer;
 
 use anyhow::Result;
-use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
+use http_body_util::{combinators::BoxBody, BodyExt, Empty};
 use hyper::body::{Bytes, Incoming};
 use hyper::client::conn::http1;
 use hyper::header::{self, HeaderValue};
 use hyper::upgrade;
-use hyper::{Method, Request, Response, StatusCode, Uri};
+use hyper::{Request, Response, StatusCode, Uri};
 use hyper_util::rt::TokioIo;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -59,11 +59,7 @@ impl ProxyHandler {
             if let Some(sf) = &cfg.static_files {
                 static_servers.insert(
                     domain.clone(),
-                    StaticFileServer::new(
-                        &sf.root,
-                        sf.index.clone(),
-                        sf.autoindex,
-                    ),
+                    StaticFileServer::new(&sf.root, sf.index.clone(), sf.autoindex),
                 );
             }
         }
@@ -104,7 +100,10 @@ impl ProxyHandler {
         // ── 1. Rate limiting ─────────────────────────────────────────────────
         if !self.rate_limiter.is_allowed(client_ip) {
             warn!("Rate limit exceeded for {}", client_ip);
-            return Ok(error_response(StatusCode::TOO_MANY_REQUESTS, "Too Many Requests"));
+            return Ok(error_response(
+                StatusCode::TOO_MANY_REQUESTS,
+                "Too Many Requests",
+            ));
         }
 
         // ── 2. WAF / security checks ─────────────────────────────────────────
@@ -113,7 +112,10 @@ impl ProxyHandler {
             .get(header::USER_AGENT)
             .and_then(|v| v.to_str().ok());
         if let Err(reason) = self.security.check_request(&path, query.as_deref(), ua) {
-            warn!("Security block for {} on {}{}: {}", client_ip, host, path, reason);
+            warn!(
+                "Security block for {} on {}{}: {}",
+                client_ip, host, path, reason
+            );
             return Ok(html_error(StatusCode::FORBIDDEN, "Forbidden", reason));
         }
 
@@ -141,7 +143,10 @@ impl ProxyHandler {
                 Ok(r) => Ok(r),
                 Err(e) => {
                     error!("WebSocket proxy error: {}", e);
-                    Ok(error_response(StatusCode::BAD_GATEWAY, "WebSocket proxy error"))
+                    Ok(error_response(
+                        StatusCode::BAD_GATEWAY,
+                        "WebSocket proxy error",
+                    ))
                 }
             };
         }
@@ -162,7 +167,11 @@ impl ProxyHandler {
             }
             Err(e) => {
                 error!("Proxy error for {} {}: {}", host, path, e);
-                Ok(html_error(StatusCode::BAD_GATEWAY, "Bad Gateway", "The upstream server is unreachable."))
+                Ok(html_error(
+                    StatusCode::BAD_GATEWAY,
+                    "Bad Gateway",
+                    "The upstream server is unreachable.",
+                ))
             }
         }
     }
@@ -181,7 +190,7 @@ impl ProxyHandler {
             .get(host)
             .ok_or_else(|| anyhow::anyhow!("No backend for '{}'", host))?;
 
-        let (backend_url, guard) = lb
+        let (backend_url, _guard) = lb
             .select(Some(peer.ip()))
             .ok_or_else(|| anyhow::anyhow!("All backends for '{}' are down", host))?;
 
@@ -289,7 +298,10 @@ impl ProxyHandler {
             .map_err(|e| anyhow::anyhow!("WS handshake failed to {}: {}", backend_addr, e))?;
 
         if backend_resp.status() != StatusCode::SWITCHING_PROTOCOLS {
-            anyhow::bail!("Backend rejected WebSocket upgrade: {}", backend_resp.status());
+            anyhow::bail!(
+                "Backend rejected WebSocket upgrade: {}",
+                backend_resp.status()
+            );
         }
 
         // Capture backend upgrade future
@@ -344,10 +356,7 @@ fn add_forwarding_headers(req: &mut Request<Incoming>, peer: SocketAddr, host: &
     let headers = req.headers_mut();
 
     // X-Forwarded-For — append this hop's IP
-    let xff = if let Some(existing) = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-    {
+    let xff = if let Some(existing) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
         format!("{}, {}", existing, peer.ip())
     } else {
         peer.ip().to_string()
@@ -360,8 +369,7 @@ fn add_forwarding_headers(req: &mut Request<Incoming>, peer: SocketAddr, host: &
     // X-Real-IP — always the direct connecting client IP
     headers.insert(
         "x-real-ip",
-        HeaderValue::from_str(&peer.ip().to_string())
-            .unwrap_or(HeaderValue::from_static("")),
+        HeaderValue::from_str(&peer.ip().to_string()).unwrap_or(HeaderValue::from_static("")),
     );
 
     // X-Forwarded-Host — original Host header

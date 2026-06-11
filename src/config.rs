@@ -1,7 +1,7 @@
-/// curf configuration types and loader.
-///
-/// curf is configured with a single YAML file (default: curf.yml).
-/// Run `curf --config /path/to/curf.yml` to specify a different path.
+//! curf configuration types and loader.
+//!
+//! curf is configured with a single YAML file (default: curf.yml).
+//! Run `curf --config /path/to/curf.yml` to specify a different path.
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -246,19 +246,45 @@ pub struct ExtraHeader {
 
 // ─── Default value helpers ────────────────────────────────────────────────────
 
-fn default_http_port() -> u16 { 80 }
-fn default_https_port() -> u16 { 443 }
-fn default_timeout() -> u64 { 30 }
-fn default_max_connections() -> usize { 10_000 }
-fn default_max_connections_per_ip() -> usize { 100 }
-fn default_rps() -> u32 { 100 }
-fn default_burst() -> u32 { 200 }
-fn default_true() -> bool { true }
-fn default_false() -> bool { false }
-fn default_tls_failures() -> u32 { 10 }
-fn default_hc_interval() -> u64 { 15 }
-fn default_hc_timeout() -> u64 { 5 }
-fn default_hc_path() -> String { "/".to_string() }
+fn default_http_port() -> u16 {
+    80
+}
+fn default_https_port() -> u16 {
+    443
+}
+fn default_timeout() -> u64 {
+    30
+}
+fn default_max_connections() -> usize {
+    10_000
+}
+fn default_max_connections_per_ip() -> usize {
+    100
+}
+fn default_rps() -> u32 {
+    100
+}
+fn default_burst() -> u32 {
+    200
+}
+fn default_true() -> bool {
+    true
+}
+fn default_false() -> bool {
+    false
+}
+fn default_tls_failures() -> u32 {
+    10
+}
+fn default_hc_interval() -> u64 {
+    15
+}
+fn default_hc_timeout() -> u64 {
+    5
+}
+fn default_hc_path() -> String {
+    "/".to_string()
+}
 fn default_index_files() -> Vec<String> {
     vec!["index.html".to_string()]
 }

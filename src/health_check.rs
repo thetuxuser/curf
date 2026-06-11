@@ -1,9 +1,9 @@
-/// Background health checker for curf.
-///
-/// For each domain that has health checks enabled, this spawns a task that
-/// periodically sends an HTTP GET to the configured `path` on every backend.
-/// Backends that fail to respond with a 2xx are marked as failed in the
-/// circuit-breaker, causing the load balancer to skip them.
+//! Background health checker for curf.
+//!
+//! For each domain that has health checks enabled, this spawns a task that
+//! periodically sends an HTTP GET to the configured `path` on every backend.
+//! Backends that fail to respond with a 2xx are marked as failed in the
+//! circuit-breaker, causing the load balancer to skip them.
 
 use crate::config::DomainConfig;
 use crate::load_balancer::LoadBalancerManager;
@@ -51,7 +51,11 @@ pub fn start_health_checks(
                     let check_url = format!(
                         "{}{}",
                         backend_url.trim_end_matches('/'),
-                        if hc.path.starts_with('/') { hc.path.clone() } else { format!("/{}", hc.path) }
+                        if hc.path.starts_with('/') {
+                            hc.path.clone()
+                        } else {
+                            format!("/{}", hc.path)
+                        }
                     );
 
                     let ok = check_backend(&check_url, hc.timeout_secs).await;
@@ -60,7 +64,10 @@ pub fn start_health_checks(
                         debug!("Health OK: {} ({})", backend_url, domain);
                         lb.success(backend_url);
                     } else {
-                        warn!("Health FAIL: {} ({}) — marking as failed", backend_url, domain);
+                        warn!(
+                            "Health FAIL: {} ({}) — marking as failed",
+                            backend_url, domain
+                        );
                         lb.failure(backend_url);
                     }
                 }
@@ -71,14 +78,10 @@ pub fn start_health_checks(
 
 /// Send a GET request and return true if the response is 2xx.
 async fn check_backend(url: &str, timeout_secs: u64) -> bool {
-    let result = timeout(
-        Duration::from_secs(timeout_secs),
-        do_get(url),
-    )
-    .await;
+    let result = timeout(Duration::from_secs(timeout_secs), do_get(url)).await;
 
     match result {
-        Ok(Ok(status)) => status >= 200 && status < 300,
+        Ok(Ok(status)) => (200..300).contains(&status),
         Ok(Err(e)) => {
             debug!("Health check error for {}: {}", url, e);
             false
@@ -107,7 +110,10 @@ async fn do_get(url: &str) -> Result<u16, Box<dyn std::error::Error + Send + Syn
     };
 
     let (host, port) = if let Some(idx) = host_port.rfind(':') {
-        (&host_port[..idx], host_port[idx + 1..].parse::<u16>().unwrap_or(80))
+        (
+            &host_port[..idx],
+            host_port[idx + 1..].parse::<u16>().unwrap_or(80),
+        )
     } else {
         (host_port, 80u16)
     };

@@ -1,12 +1,12 @@
-/// Load balancer for curf.
-///
-/// Supports three strategies:
-///   round_robin      — cycle through backends evenly (default)
-///   least_connections — pick the backend with fewest active requests
-///   ip_hash           — always send the same client IP to the same backend
-///
-/// A simple circuit-breaker per backend opens after 5 consecutive failures
-/// and resets after 30 seconds, allowing the backend a chance to recover.
+//! Load balancer for curf.
+//!
+//! Supports three strategies:
+//!   round_robin      — cycle through backends evenly (default)
+//!   least_connections — pick the backend with fewest active requests
+//!   ip_hash           — always send the same client IP to the same backend
+//!
+//! A simple circuit-breaker per backend opens after 5 consecutive failures
+//! and resets after 30 seconds, allowing the backend a chance to recover.
 
 use crate::config::{DomainConfig, LoadBalance};
 use dashmap::DashMap;
@@ -16,10 +16,9 @@ use std::sync::{
     Arc,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::RwLock;
 
-const CB_THRESHOLD: usize = 5;  // failures before circuit opens
-const CB_RESET_SECS: u64 = 30;  // seconds before circuit half-opens
+const CB_THRESHOLD: usize = 5; // failures before circuit opens
+const CB_RESET_SECS: u64 = 30; // seconds before circuit half-opens
 
 // ─── Backend ──────────────────────────────────────────────────────────────────
 
@@ -71,8 +70,7 @@ impl Backend {
 
     pub fn record_failure(&self) {
         let f = self.failures.fetch_add(1, Ordering::Relaxed) + 1;
-        self.last_failure
-            .store(unix_now(), Ordering::Relaxed);
+        self.last_failure.store(unix_now(), Ordering::Relaxed);
         if f >= CB_THRESHOLD {
             self.circuit_open.store(true, Ordering::Relaxed);
         }
@@ -117,7 +115,11 @@ pub struct LoadBalancer {
 
 impl LoadBalancer {
     pub fn new(cfg: &DomainConfig) -> Self {
-        let backends = cfg.backends.iter().map(|u| Arc::new(Backend::new(u))).collect();
+        let backends = cfg
+            .backends
+            .iter()
+            .map(|u| Arc::new(Backend::new(u)))
+            .collect();
         Self {
             backends,
             strategy: cfg.load_balance.clone(),
@@ -207,7 +209,9 @@ pub struct LoadBalancerManager {
 
 impl LoadBalancerManager {
     pub fn new() -> Self {
-        Self { map: DashMap::new() }
+        Self {
+            map: DashMap::new(),
+        }
     }
 
     pub fn add_domain(&self, domain: String, lb: Arc<LoadBalancer>) {
